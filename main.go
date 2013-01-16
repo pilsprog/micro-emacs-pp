@@ -9,7 +9,7 @@ import (
 func main() {
 	gtk.Init(&os.Args)
 	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
-	window.SetTitle("microemacspp")
+	window.SetTitle("µemacs/pp")
 	window.Connect("destroy", gtk.MainQuit)
 
 	swin := gtk.NewScrolledWindow(nil, nil)
