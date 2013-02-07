@@ -123,10 +123,10 @@ func handleKeyPress(ctx *glib.CallbackContext){
 	  textbuffer.GetStartIter(&start)
 	  textbuffer.GetEndIter(&end)
     textbuffer.Delete(&start,&end)
-    textbuffer.Insert(&start,"Find-file: ")
+    SaveCurrentOpenFile(sourceview.GetBuffer(),fileName)
     sourceview.SetEditable(true)
     textview.SetEditable(false)
-    SaveCurrentOpenFile(sourceview.GetBuffer(),fileName)
+    sourceview.GrabFocus()
   } else if readingFileName {
     if kev.Keyval != gdk.KEY_Return {
       textview.SetEditable(true)
@@ -146,7 +146,6 @@ func handleKeyPress(ctx *glib.CallbackContext){
 	  textbuffer.GetStartIter(&start)
 	  textbuffer.GetEndIter(&end)
     textbuffer.Delete(&start,&end)
-    textbuffer.Insert(&start,"Find-file: ")
     sourceview.SetEditable(true)
     textview.SetEditable(false)
   }
