@@ -38,6 +38,27 @@ func OpenFileInBuffer(tb *gsv.SourceBuffer,f string) (err error) {
 	file.Close()
 	return nil
 }
+
+func SaveCurrentOpenFile(tb *gsv.SourceBuffer, f string) (err error) {
+	var (
+		start gtk.TextIter
+		end gtk.TextIter
+	)
+
+	tb.GetStartIter(&start)
+	tb.GetEndIter(&end)
+
+	str := tb.GetText(&start, &end, false)
+
+	fo, err := os.Create(f+"~")
+	if err != nil {
+		return
+	}
+	fo.WriteString(str)
+	fo.Close()
+	return nil
+}
+
 func main() {
 	gtk.Init(&os.Args)
 	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
