@@ -7,12 +7,12 @@ import (
 )
 
 type KeyPressEvent struct{
-  keyVal C.unsigned
-  modifier gdk.ModifierType
+  KeyVal int
+  Modifier gdk.ModifierType
 }
 
 func (k1 KeyPressEvent) Equals(k2 KeyPressEvent) bool{
-  return k1.keyVal == k2.keyVal && k1.modifier == k2.modifier
+  return k1.KeyVal == k2.KeyVal && k1.Modifier == k2.Modifier
 }
 
 func (k1 KeyPressEvent) toChar() string{

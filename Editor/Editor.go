@@ -1,11 +1,12 @@
 package Editor
-import "bufio"
+//import "bufio"
 import "io"
+import "os"
 import "github.com/mattn/go-gtk/gtk"	
 
 type Editor struct {
-  filename string
-  buf ReaderWriter
+  Filename string
+  Buf io.ReadWriter
 }
 
 func (e * Editor) OpenFile(f string){
@@ -13,7 +14,7 @@ func (e * Editor) OpenFile(f string){
 	if err != nil {
 		return
 	}
-  io.Copy(fo,e.buf)
+  io.Copy(fo,e.Buf)
   
 }
 
@@ -22,25 +23,25 @@ func (e * Editor) SaveFile(f string){
 	if err != nil {
 		return
 	}
-  io.Copy(e.buf,fo)
+  io.Copy(e.Buf,fo)
   
 }
 
-type GtkTextBufferReaderWriter{
-  currIt gtk.TextIter
-  buf gtk.TextBuffer
+type GtkTextBufferReadWriter struct{
+  CurrIt gtk.TextIter
+  Buf *gtk.TextBuffer
 }
 
-func (tbw *GtkTextBufferWrapper) Read(p []byte) (n int, err error){
-  var enditer gtk.textiter
-  tbw.buf.getenditer(enditer)
+func (tbw *GtkTextBufferReadWriter) Read(p []byte) (n int, err error){
+  var enditer gtk.TextIter
+  tbw.Buf.GetEndIter(&enditer)
 
-  if tbw.currIt == enditer {
-    return 0,EOF
+  if tbw.CurrIt == enditer {
+    return 0,io.EOF
   } else {
-    a := []byte(tbw.buf.gettext(&tbw.currit))
+    a := []byte(tbw.Buf.GetText(&tbw.CurrIt,&enditer,false))
 
-    tbw.buf.getiteratoffset(&tbw.currit,tbw.currit.getoffset + len(a))
+    tbw.Buf.GetIterAtOffset(&tbw.CurrIt,tbw.CurrIt.GetOffset() + len(a))
 
     for i := 0; i < len(a);i++ {
       p[i] = a[i] 
@@ -48,8 +49,9 @@ func (tbw *GtkTextBufferWrapper) Read(p []byte) (n int, err error){
 
     return len(a),nil
   }
+  return 0,nil
 }
-func (tbw *GtkTextBufferWrapper) Write(p []byte) (n int, err error){
+func (tbw *GtkTextBufferReadWriter) Write(p []byte) (n int, err error){
 
   return 0,nil
 
