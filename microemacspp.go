@@ -9,6 +9,7 @@ import (
 	"github.com/mattn/go-gtk/gdk"	
 	"github.com/mattn/go-gtk/glib"	
 	gsv "github.com/mattn/go-gtk/gtksourceview"	
+  "microemacspp/Editor"
 )
 
 var textbuffer * gtk.TextBuffer
@@ -18,60 +19,11 @@ var fileName string
 
 var readingFileName bool
 
-func OpenFileInBuffer(tb *gtk.TextBuffer,f string) (err error) {
-	var (
-		part []byte
-		prefix bool
-		start gtk.TextIter
-	)
-
-	file, err := os.Open(f)
-	if err != nil {
-		return
-	}	
-	
-	tb.GetStartIter(&start)
-
-	reader := bufio.NewReader(file)
-	buffer := bytes.NewBuffer(make([]byte, 1024))
-	
-	for {
-		if part, prefix, err = reader.ReadLine(); err != nil {
-			return err
-		}
-		buffer.Write(part)
-		if !prefix {
-			tb.Insert(&start, buffer.String()+"\n")
-			buffer.Reset()
-		}
-	}
-	file.Close()
-	return nil
-}
-
-func SaveCurrentOpenFile(tb *gtk.TextBuffer, f string) (err error) {
-	var (
-		start gtk.TextIter
-		end gtk.TextIter
-	)
-
-	tb.GetStartIter(&start)
-	tb.GetEndIter(&end)
-
-	str := tb.GetText(&start, &end, false)
-
-	fo, err := os.Create(f+"~")
-	if err != nil {
-		return
-	}
-	fo.WriteString(str)
-	fo.Close()
-	return nil
-}
-
 func main() {
   readingFileName = false
 
+  k := KeyHandler.Root
+  k.Handle(KeyHandler.KeyReturn,nil)
 	gtk.Init(&os.Args)
 	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
 	window.SetTitle("µemacs/pp")
