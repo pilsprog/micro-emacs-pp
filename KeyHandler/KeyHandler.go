@@ -2,7 +2,7 @@ package KeyHandler
 
 import (
 	"github.com/mattn/go-gtk/gdk"	
-  "microemacspp/Editor"
+  "micro-emacs-pp/Editor"
   "C"
 )
 

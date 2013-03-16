@@ -1,5 +1,4 @@
 package Editor
-//import "bufio"
 import "io"
 import "os"
 import "github.com/mattn/go-gtk/gtk"	

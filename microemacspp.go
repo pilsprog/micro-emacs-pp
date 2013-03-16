@@ -7,8 +7,8 @@ import (
 	"github.com/mattn/go-gtk/gdk"	
 	"github.com/mattn/go-gtk/glib"	
 	gsv "github.com/mattn/go-gtk/gtksourceview"	
-  "microemacspp/Editor"
-  "microemacspp/KeyHandler"
+  "micro-emacs-pp/Editor"
+  "micro-emacs-pp/KeyHandler"
 )
 
 var textbuffer * gtk.TextBuffer
