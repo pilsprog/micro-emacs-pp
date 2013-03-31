@@ -22,22 +22,21 @@ func (k1 KeyPressEvent) Equals(k2 KeyPressEvent) bool {
 	return k1.KeyVal == k2.KeyVal && k1.Modifier == k2.Modifier
 }
 
-// KeyHandler is the interface that every node in the tree implements. A
-// KeyHandler takes a KeyPressEvent (the key that was pressed) the Editor and
-// returns a boolean and a new KeyHandler.  true indicates that the keypress
-// was successfully applied, and the keyHandler is a pointer to the new
-// position in the tree.
+// KeyHandler is the interface that every node in the tree implements. Accepts
+// returns true if the KeyHandler takes resposibility for the given keypresses and
+// Insert attempts to insert a new KeyHandler and returns true if it is
+// successful.
 type KeyHandler interface {
 	Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler)
-	//  Accepts(e KeyPressEvent) bool
-	//  Insert(e []KeyPressEvent,h KeyHandler) bool
+	Accepts(e []KeyPressEvent) bool
+	Insert(e []KeyPressEvent, h KeyHandler) bool
 	//  Replace(e []KeyPressEvent,h KeyHandler) bool
 }
 
 // KeyChoice is a KeyHandler which represents a choice between several different
 // keyHandlers. KeyChoice calls every KeyHandler in its list until one succeeds.
-func KeyChoice(choices []KeyHandler) KeyHandler {
-	return &keyChoice{choices}
+func KeyChoice(choices ...KeyHandler) KeyHandler {
+	return &keyChoice{[]KeyHandler(choices)}
 }
 
 type keyChoice struct {
@@ -54,13 +53,46 @@ func (k *keyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHan
 	return false, root
 }
 
+func (k *keyChoice) Accepts(e []KeyPressEvent) bool {
+	for _, choice := range k.choices {
+		if choice.Accepts(e) {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *keyChoice) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	fmt.Println("keyChoice insert")
+	for _, choice := range k.choices {
+		accepts := choice.Accepts(e)
+		if accepts {
+			return false
+		}
+
+		inserted := choice.Insert(e, kh)
+		if inserted {
+			fmt.Println("insert succeeded in child")
+			return true
+		}
+	}
+	fmt.Println("Appended new choice")
+	k.choices = append(k.choices, makeGuards(e, kh))
+	return false
+}
+
+func makeGuards(e []KeyPressEvent, kh KeyHandler) KeyHandler {
+	if len(e) == 0 {
+		return kh
+	}
+	return GuardHandler(e[0], makeGuards(e[1:], kh))
+}
+
 var (
 	root         KeyHandler
 	CtrlXHandler KeyHandler = GuardHandler(
 		KeyCtrlx,
-		PauseHandler(KeyChoice([]KeyHandler{
-			CtrlFHandler,
-			CtrlSHandler})))
+		PauseHandler(KeyChoice(CtrlFHandler, CtrlSHandler)))
 	// CtrlFhandler Opens a file if Ctrl+F was
 	// pressed.
 	CtrlFHandler KeyHandler = GuardHandler(
@@ -95,6 +127,7 @@ var (
 		}))
 
 	KeyReturn KeyPressEvent = KeyPressEvent{gdk.KEY_Return, 0}
+	KeyCtrle  KeyPressEvent = KeyPressEvent{gdk.KEY_e, gdk.CONTROL_MASK}
 	KeyCtrlx  KeyPressEvent = KeyPressEvent{gdk.KEY_x, gdk.CONTROL_MASK}
 	KeyCtrlf  KeyPressEvent = KeyPressEvent{gdk.KEY_f, gdk.CONTROL_MASK}
 	KeyCtrls  KeyPressEvent = KeyPressEvent{gdk.KEY_s, gdk.CONTROL_MASK}
@@ -114,9 +147,17 @@ func (k *actionHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, Ke
 	return true, k.action(editor)
 }
 
+func (k *actionHandler) Accepts(e []KeyPressEvent) bool {
+	return true
+}
+
+func (k *actionHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	return false
+}
+
 // Returns the default root node
 func MakeRoot() KeyHandler {
-	root = &rootHandler{KeyChoice([]KeyHandler{CtrlXHandler})}
+	root = &rootHandler{KeyChoice(CtrlXHandler)}
 	return root
 }
 
@@ -129,7 +170,16 @@ func (this *rootHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, K
 	if ok {
 		return ok, handler
 	}
-	return false, this
+	return true, this
+}
+
+func (this *rootHandler) Accepts(e []KeyPressEvent) bool {
+	return true
+}
+
+func (this *rootHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	fmt.Println("rootInsert")
+	return this.TopLevelChoices.Insert(e, kh)
 }
 
 // GuardHandler checks that a particular key was pressed
@@ -154,6 +204,23 @@ func (this *guardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, 
 	return false, nil
 }
 
+func (this *guardHandler) Accepts(e []KeyPressEvent) bool {
+	if e[0].Equals(this.checkFor) {
+		return this.next.Accepts(e[1:])
+	}
+	return false
+}
+
+func (this *guardHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	if e[0].Equals(this.checkFor) {
+		if !this.next.Insert(e[1:], kh) {
+			this.next = KeyChoice(this.next, makeGuards(e[1:], kh))
+		}
+		return true
+	}
+	return false
+}
+
 // PauseHandler Accepts all input and returns
 // its KeyHandler. This means tha the current KeyPressEvent
 // is accepted and the next keypressevent is given to Next.
@@ -167,6 +234,14 @@ type pauseHandler struct {
 
 func (this *pauseHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
 	return true, this.next
+}
+
+func (this *pauseHandler) Accepts(e []KeyPressEvent) bool {
+	return this.next.Accepts(e)
+}
+
+func (this *pauseHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	return this.next.Insert(e, kh)
 }
 
 // InputHandler waits for input string ended by the Return Key
@@ -187,4 +262,12 @@ func (this *inputHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, 
 	editor.CommandBuf.SetItStart()
 	n, _ := editor.CommandBuf.Read(buff)
 	return true, this.action(string(buff[0:n]), editor)
+}
+
+func (this *inputHandler) Accepts(e []KeyPressEvent) bool {
+	return true
+}
+
+func (this *inputHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
+	return false
 }

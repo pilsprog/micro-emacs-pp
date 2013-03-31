@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"
 	gsv "github.com/mattn/go-gtk/gtksourceview"
 	"micro-emacs-pp/Editor"
-	"micro-emacs-pp/KeyHandler"
+	. "micro-emacs-pp/KeyHandler"
 	"os"
 	"unsafe"
 )
@@ -17,7 +18,7 @@ var (
 	textview   *gtk.TextView
 	fileName   string
 	microemacs Editor.Editor
-	keyh       KeyHandler.KeyHandler = KeyHandler.MakeRoot()
+	keyh       KeyHandler = MakeRoot()
 )
 
 func main() {
@@ -31,6 +32,19 @@ func main() {
 	swin := gtk.NewScrolledWindow(nil, nil)
 	sourcebuffer := gsv.NewSourceBufferWithLanguage(gsv.SourceLanguageManagerGetDefault().GetLanguage("cpp"))
 	sourceview = gsv.NewSourceViewWithBuffer(sourcebuffer)
+
+	ok := keyh.Insert([]KeyPressEvent{KeyCtrle},
+		ActionHandler(func(e *Editor.Editor) KeyHandler {
+			e.CommandBuf.GrabFocus()
+			fmt.Println("Easter Egg!")
+			e.CommandBuf.Clear()
+			e.CommandBuf.Write([]byte("Easter Egg!!"))
+			return keyh
+		}))
+
+	if !ok {
+		fmt.Println("Insert failed!")
+	}
 
 	var start gtk.TextIter
 	sourcebuffer.GetStartIter(&start)
@@ -64,7 +78,7 @@ func handleKeyPress(ctx *glib.CallbackContext) {
 	arg := ctx.Args(0)
 	kev := *(**gdk.EventKey)(unsafe.Pointer(&arg))
 
-	kpe := KeyHandler.KeyPressEvent{int(kev.Keyval), 0}
+	kpe := KeyPressEvent{int(kev.Keyval), 0}
 	if (gdk.ModifierType(kev.State) & gdk.CONTROL_MASK) != 0 {
 		kpe.Modifier = gdk.CONTROL_MASK
 	}
