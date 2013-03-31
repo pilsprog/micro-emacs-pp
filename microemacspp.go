@@ -11,12 +11,14 @@ import (
 	"unsafe"
 )
 
-var textbuffer *gtk.TextBuffer
-var sourceview *gsv.SourceView
-var textview *gtk.TextView
-var fileName string
-var microemacs Editor.Editor
-var keyh KeyHandler.KeyHandler = KeyHandler.MakeRoot()
+var (
+	textbuffer *gtk.TextBuffer
+	sourceview *gsv.SourceView
+	textview   *gtk.TextView
+	fileName   string
+	microemacs Editor.Editor
+	keyh       KeyHandler.KeyHandler = KeyHandler.MakeRoot()
+)
 
 func main() {
 
