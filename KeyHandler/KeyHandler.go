@@ -29,15 +29,22 @@ func (k1 KeyPressEvent) Equals(k2 KeyPressEvent) bool {
 // position in the tree.
 type KeyHandler interface {
 	Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler)
+	//  Accepts(e KeyPressEvent) bool
+	//  Insert(e []KeyPressEvent,h KeyHandler) bool
+	//  Replace(e []KeyPressEvent,h KeyHandler) bool
 }
 
 // KeyChoice is a KeyHandler which represents a choice between several different
 // keyHandlers. KeyChoice calls every KeyHandler in its list until one succeeds.
-type KeyChoice struct {
+func KeyChoice(choices []KeyHandler) KeyHandler {
+	return &keyChoice{choices}
+}
+
+type keyChoice struct {
 	choices []KeyHandler
 }
 
-func (k *KeyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (k *keyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
 	for _, choice := range k.choices {
 		ok, handler := choice.Handle(e, editor)
 		if ok {
@@ -49,44 +56,43 @@ func (k *KeyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHan
 
 var (
 	root         KeyHandler
-	CtrlXHandler KeyHandler = &GuardHandler{
+	CtrlXHandler KeyHandler = GuardHandler(
 		KeyCtrlx,
-		&PauseHandler{&KeyChoice{[]KeyHandler{
+		PauseHandler(KeyChoice([]KeyHandler{
 			CtrlFHandler,
-			CtrlSHandler}}}}
+			CtrlSHandler})))
 	// CtrlFhandler Opens a file if Ctrl+F was
 	// pressed.
-	CtrlFHandler KeyHandler = &GuardHandler{
+	CtrlFHandler KeyHandler = GuardHandler(
 		KeyCtrlf,
-		&ActionHandler{func(e *Editor.Editor) KeyHandler {
+		ActionHandler(func(e *Editor.Editor) KeyHandler {
 			e.CommandBuf.GrabFocus()
 			e.CommandBuf.Clear()
 			e.CommandBuf.Write([]byte("Find-file:"))
-			return &InputHandler{"", func(s string, e *Editor.Editor) KeyHandler {
-				fmt.Println(s)
-				e.OpenFile(s)
+			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
+				e.OpenFile(s[10:])
 				e.CommandBuf.Clear()
 				e.CommandBuf.Write([]byte("File Opened!"))
 				e.Buf.GrabFocus()
 				return root
-			}}
-		}}}
+			})
+		}))
 
 	//CtrlSHandler saves the current buffer if
 	//Ctrl+S was pressed.
-	CtrlSHandler KeyHandler = &GuardHandler{
+	CtrlSHandler KeyHandler = GuardHandler(
 		KeyCtrls,
-		&ActionHandler{func(e *Editor.Editor) KeyHandler {
+		ActionHandler(func(e *Editor.Editor) KeyHandler {
 			e.CommandBuf.GrabFocus()
 			e.CommandBuf.Clear()
-			return &InputHandler{"", func(s string, e *Editor.Editor) KeyHandler {
+			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
 				e.SaveFile(s)
 				e.CommandBuf.Clear()
 				e.CommandBuf.Write([]byte("File Saved!"))
 				e.Buf.GrabFocus()
 				return root
-			}}
-		}}}
+			})
+		}))
 
 	KeyReturn KeyPressEvent = KeyPressEvent{gdk.KEY_Return, 0}
 	KeyCtrlx  KeyPressEvent = KeyPressEvent{gdk.KEY_x, gdk.CONTROL_MASK}
@@ -96,17 +102,21 @@ var (
 
 // Action Handler applies the Action regardless of what key was pressed and 
 // then immediately gives control to the KeyHandler given by the Action.
-type ActionHandler struct {
-	Action func(*Editor.Editor) KeyHandler
+func ActionHandler(Action func(*Editor.Editor) KeyHandler) KeyHandler {
+	return &actionHandler{Action}
 }
 
-func (k *ActionHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
-	return true, k.Action(editor)
+type actionHandler struct {
+	action func(*Editor.Editor) KeyHandler
+}
+
+func (k *actionHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+	return true, k.action(editor)
 }
 
 // Returns the default root node
 func MakeRoot() KeyHandler {
-	root = &rootHandler{&KeyChoice{[]KeyHandler{CtrlXHandler}}}
+	root = &rootHandler{KeyChoice([]KeyHandler{CtrlXHandler})}
 	return root
 }
 
@@ -116,7 +126,6 @@ type rootHandler struct {
 
 func (this *rootHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
 	ok, handler := this.TopLevelChoices.Handle(e, editor)
-	fmt.Println("rootHandlerProc")
 	if ok {
 		return ok, handler
 	}
@@ -125,15 +134,19 @@ func (this *rootHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, K
 
 // GuardHandler checks that a particular key was pressed
 // before calling the next keyhandler.
-type GuardHandler struct {
-	CheckFor KeyPressEvent
-	Next     KeyHandler
+func GuardHandler(chk KeyPressEvent, next KeyHandler) KeyHandler {
+	return &guardHandler{chk, next}
 }
 
-func (this *GuardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
-	if e.Equals(this.CheckFor) {
+type guardHandler struct {
+	checkFor KeyPressEvent
+	next     KeyHandler
+}
+
+func (this *guardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+	if e.Equals(this.checkFor) {
 		fmt.Println("Guard Succeeded")
-		_, handler := this.Next.Handle(e, editor)
+		_, handler := this.next.Handle(e, editor)
 		return true, handler
 	}
 	fmt.Println(string(e.KeyVal) + " " + string(e.Modifier))
@@ -144,25 +157,34 @@ func (this *GuardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, 
 // PauseHandler Accepts all input and returns
 // its KeyHandler. This means tha the current KeyPressEvent
 // is accepted and the next keypressevent is given to Next.
-type PauseHandler struct {
-	Next KeyHandler
+func PauseHandler(Next KeyHandler) KeyHandler {
+	return &pauseHandler{Next}
 }
 
-func (this *PauseHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
-	return true, this.Next
+type pauseHandler struct {
+	next KeyHandler
+}
+
+func (this *pauseHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+	return true, this.next
 }
 
 // InputHandler waits for input string ended by the Return Key
 // and gives it to the Action.
-type InputHandler struct {
-	Input  string
-	Action func(s string, e *Editor.Editor) KeyHandler
+func InputHandler(action func(s string, e *Editor.Editor) KeyHandler) KeyHandler {
+	return &inputHandler{action}
 }
 
-func (this *InputHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+type inputHandler struct {
+	action func(s string, e *Editor.Editor) KeyHandler
+}
+
+func (this *inputHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
 	if !e.Equals(KeyReturn) {
-		this.Input += string(e.KeyVal)
 		return true, this
 	}
-	return true, this.Action(this.Input, editor)
+	buff := make([]byte, 512)
+	editor.CommandBuf.SetItStart()
+	n, _ := editor.CommandBuf.Read(buff)
+	return true, this.action(string(buff[0:n]), editor)
 }

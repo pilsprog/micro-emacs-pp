@@ -1,9 +1,11 @@
 package Editor
 
-import "io"
-import "os"
-import "github.com/mattn/go-gtk/gtk"
-import "fmt"
+import (
+	"fmt"
+	"github.com/mattn/go-gtk/gtk"
+	"io"
+	"os"
+)
 
 type Editor struct {
 	Filename   string
@@ -26,7 +28,7 @@ func (e *Editor) OpenFile(f string) {
 		fmt.Println("Error Opening File!")
 		return
 	}
-	e.Buf.SetItEnd()
+	e.Buf.Clear()
 	io.Copy(e.Buf, fo)
 }
 
