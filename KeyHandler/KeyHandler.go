@@ -133,7 +133,7 @@ var (
 	KeyCtrls  KeyPressEvent = KeyPressEvent{gdk.KEY_s, gdk.CONTROL_MASK}
 )
 
-// Action Handler applies the Action regardless of what key was pressed and 
+// Action Handler applies the Action regardless of what key was pressed and
 // then immediately gives control to the KeyHandler given by the Action.
 func ActionHandler(Action func(*Editor.Editor) KeyHandler) KeyHandler {
 	return &actionHandler{Action}
@@ -213,7 +213,9 @@ func (this *guardHandler) Accepts(e []KeyPressEvent) bool {
 
 func (this *guardHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
 	if e[0].Equals(this.checkFor) {
-		if !this.next.Insert(e[1:], kh) {
+		if this.next.Accepts(e[1:]) {
+			return this.next.Insert(e[1:], kh)
+		} else {
 			this.next = KeyChoice(this.next, makeGuards(e[1:], kh))
 		}
 		return true
