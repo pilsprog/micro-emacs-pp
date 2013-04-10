@@ -6,9 +6,24 @@ package KeyHandler
 import (
 	"C"
 	"fmt"
-	"github.com/mattn/go-gtk/gdk"
 	"micro-emacs-pp/Editor"
 )
+
+var (
+	Root KeyHandler
+	KeyReturn KeyPressEvent
+)
+
+// Returns the default root node
+func MakeRoot(khs ...KeyHandler) KeyHandler {
+	Root = &rootHandler{KeyChoice(khs...)}
+	return Root
+}
+
+func SetKeyReturn(k KeyPressEvent) KeyPressEvent {
+	KeyReturn = k
+	return KeyReturn
+}
 
 type Modifier int
 
@@ -43,31 +58,6 @@ type KeyPressEvent interface {
 	Equals(KeyPressEvent) bool
 }
 
-// KeyPressEvent represents a keypress consisting of the particular key
-// (KeyVal) and possibly a modifier (0 if no modifier is given).
-type GTKKeyPressEvent struct {
-	KeyVal   int
-	Modifier gdk.ModifierType
-}
-
-func (press GTKKeyPressEvent) GetKeyValue() int {
-	return press.KeyVal
-}
-
-func (press GTKKeyPressEvent) GetModifier() Modifier {
-	mod := press.Modifier
-	switch {
-	case mod&gdk.CONTROL_MASK != 0:
-		return CTRL
-	}
-	return NONE
-}
-
-// Compare two KeyPressEvents
-func (k1 GTKKeyPressEvent) Equals(k2 KeyPressEvent) bool {
-	return k1.GetKeyValue() == k2.GetKeyValue() && k1.GetModifier() == k2.GetModifier()
-}
-
 // KeyHandler is the interface that every node in the tree implements. Accepts
 // returns true if the KeyHandler takes resposibility for the given keypresses and
 // Insert attempts to insert a new KeyHandler and returns true if it is
@@ -96,7 +86,7 @@ func (k *keyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHan
 			return ok, handler
 		}
 	}
-	return false, root
+	return false, Root
 }
 
 func (k *keyChoice) Accepts(e []KeyPressEvent) bool {
@@ -134,51 +124,6 @@ func makeGuards(e []KeyPressEvent, kh KeyHandler) KeyHandler {
 	return GuardHandler(e[0], makeGuards(e[1:], kh))
 }
 
-var (
-	root         KeyHandler
-	CtrlXHandler KeyHandler = GuardHandler(
-		KeyCtrlx,
-		PauseHandler(KeyChoice(CtrlFHandler, CtrlSHandler)))
-	// CtrlFhandler Opens a file if Ctrl+F was
-	// pressed.
-	CtrlFHandler KeyHandler = GuardHandler(
-		KeyCtrlf,
-		ActionHandler(func(e *Editor.Editor) KeyHandler {
-			e.CommandBuf.GrabFocus()
-			e.CommandBuf.Clear()
-			e.CommandBuf.Write([]byte("Find-file:"))
-			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
-				e.OpenFile(s[10:])
-				e.CommandBuf.Clear()
-				e.CommandBuf.Write([]byte("File Opened!"))
-				e.Buf.GrabFocus()
-				return root
-			})
-		}))
-
-	//CtrlSHandler saves the current buffer if
-	//Ctrl+S was pressed.
-	CtrlSHandler KeyHandler = GuardHandler(
-		KeyCtrls,
-		ActionHandler(func(e *Editor.Editor) KeyHandler {
-			e.CommandBuf.GrabFocus()
-			e.CommandBuf.Clear()
-			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
-				e.SaveFile(s)
-				e.CommandBuf.Clear()
-				e.CommandBuf.Write([]byte("File Saved!"))
-				e.Buf.GrabFocus()
-				return root
-			})
-		}))
-
-	KeyReturn KeyPressEvent = GTKKeyPressEvent{gdk.KEY_Return, 0}
-	KeyCtrle  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_e, gdk.CONTROL_MASK}
-	KeyCtrlx  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_x, gdk.CONTROL_MASK}
-	KeyCtrlf  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_f, gdk.CONTROL_MASK}
-	KeyCtrls  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_s, gdk.CONTROL_MASK}
-)
-
 // Action Handler applies the Action regardless of what key was pressed and
 // then immediately gives control to the KeyHandler given by the Action.
 func ActionHandler(Action func(*Editor.Editor) KeyHandler) KeyHandler {
@@ -199,12 +144,6 @@ func (k *actionHandler) Accepts(e []KeyPressEvent) bool {
 
 func (k *actionHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
 	return false
-}
-
-// Returns the default root node
-func MakeRoot() KeyHandler {
-	root = &rootHandler{KeyChoice(CtrlXHandler)}
-	return root
 }
 
 type rootHandler struct {
