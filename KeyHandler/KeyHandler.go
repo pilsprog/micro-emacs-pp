@@ -21,6 +21,22 @@ const (
 	SUPER
 )
 
+func (m Modifier) String() string {
+	switch {
+	case m == CTRL:
+		return "Ctrl"
+	case m == FN:
+		return "Fn"
+	case m == HYPER:
+		return "Hyper"
+	case m == META:
+		return "Meta"
+	case m == SUPER:
+		return "Super"
+	}
+	return "None"
+}
+
 type KeyPressEvent interface {
 	GetKeyValue() int
 	GetModifier() Modifier
