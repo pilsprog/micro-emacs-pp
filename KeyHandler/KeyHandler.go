@@ -10,16 +10,46 @@ import (
 	"micro-emacs-pp/Editor"
 )
 
+type Modifier int
+
+const (
+	NONE Modifier = iota
+	CTRL
+	FN
+	HYPER
+	META
+	SUPER
+)
+
+type KeyPressEvent interface {
+	GetKeyValue() int
+	GetModifier() Modifier
+	Equals(KeyPressEvent) bool
+}
+
 // KeyPressEvent represents a keypress consisting of the particular key
 // (KeyVal) and possibly a modifier (0 if no modifier is given).
-type KeyPressEvent struct {
+type GTKKeyPressEvent struct {
 	KeyVal   int
 	Modifier gdk.ModifierType
 }
 
+func (press GTKKeyPressEvent) GetKeyValue() int {
+	return press.KeyVal
+}
+
+func (press GTKKeyPressEvent) GetModifier() Modifier {
+	mod := press.Modifier
+	switch {
+	case mod&gdk.CONTROL_MASK != 0:
+		return CTRL
+	}
+	return NONE
+}
+
 // Compare two KeyPressEvents
-func (k1 KeyPressEvent) Equals(k2 KeyPressEvent) bool {
-	return k1.KeyVal == k2.KeyVal && k1.Modifier == k2.Modifier
+func (k1 GTKKeyPressEvent) Equals(k2 KeyPressEvent) bool {
+	return k1.GetKeyValue() == k2.GetKeyValue() && k1.GetModifier() == k2.GetModifier()
 }
 
 // KeyHandler is the interface that every node in the tree implements. Accepts
@@ -126,11 +156,11 @@ var (
 			})
 		}))
 
-	KeyReturn KeyPressEvent = KeyPressEvent{gdk.KEY_Return, 0}
-	KeyCtrle  KeyPressEvent = KeyPressEvent{gdk.KEY_e, gdk.CONTROL_MASK}
-	KeyCtrlx  KeyPressEvent = KeyPressEvent{gdk.KEY_x, gdk.CONTROL_MASK}
-	KeyCtrlf  KeyPressEvent = KeyPressEvent{gdk.KEY_f, gdk.CONTROL_MASK}
-	KeyCtrls  KeyPressEvent = KeyPressEvent{gdk.KEY_s, gdk.CONTROL_MASK}
+	KeyReturn KeyPressEvent = GTKKeyPressEvent{gdk.KEY_Return, 0}
+	KeyCtrle  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_e, gdk.CONTROL_MASK}
+	KeyCtrlx  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_x, gdk.CONTROL_MASK}
+	KeyCtrlf  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_f, gdk.CONTROL_MASK}
+	KeyCtrls  KeyPressEvent = GTKKeyPressEvent{gdk.KEY_s, gdk.CONTROL_MASK}
 )
 
 // Action Handler applies the Action regardless of what key was pressed and
@@ -199,7 +229,7 @@ func (this *guardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, 
 		_, handler := this.next.Handle(e, editor)
 		return true, handler
 	}
-	fmt.Println(string(e.KeyVal) + " " + string(e.Modifier))
+	fmt.Println(string(e.GetKeyValue()), " : ", e.GetModifier())
 	fmt.Println("Guard Failed")
 	return false, nil
 }

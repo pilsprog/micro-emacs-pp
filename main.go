@@ -78,7 +78,7 @@ func handleKeyPress(ctx *glib.CallbackContext) {
 	arg := ctx.Args(0)
 	kev := *(**gdk.EventKey)(unsafe.Pointer(&arg))
 
-	kpe := KeyPressEvent{int(kev.Keyval), 0}
+	kpe := GTKKeyPressEvent{int(kev.Keyval), 0}
 	if (gdk.ModifierType(kev.State) & gdk.CONTROL_MASK) != 0 {
 		kpe.Modifier = gdk.CONTROL_MASK
 	}
