@@ -7,6 +7,7 @@ import (
 	"github.com/mattn/go-gtk/gtk"
 	gsv "github.com/mattn/go-gtk/gtksourceview"
 	"micro-emacs-pp/Editor"
+	ed "micro-emacs-pp/GTK/Editor"
 	. "micro-emacs-pp/KeyHandler"
 	kh "micro-emacs-pp/GTK/KeyHandler"
 	"os"
@@ -58,10 +59,10 @@ func main() {
 
 	var bufiter gtk.TextIter
 	sourcebuffer.GetStartIter(&bufiter)
-	bufWrapper := Editor.GtkTextBufferReadWriter{&sourceview.TextView.Container.Widget, bufiter, &sourcebuffer.TextBuffer}
+	bufWrapper := ed.GtkTextBufferReadWriter{&sourceview.TextView.Container.Widget, bufiter, &sourcebuffer.TextBuffer}
 	var comiter gtk.TextIter
 	textbuffer.GetStartIter(&comiter)
-	comWrapper := Editor.GtkTextBufferReadWriter{&textview.Container.Widget, comiter, textbuffer}
+	comWrapper := ed.GtkTextBufferReadWriter{&textview.Container.Widget, comiter, textbuffer}
 	microemacs = Editor.Editor{"", &bufWrapper, &comWrapper}
 
 	vbox := gtk.NewVBox(false, 0)
