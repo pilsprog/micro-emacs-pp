@@ -6,10 +6,10 @@ import (
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"
 	gsv "github.com/mattn/go-gtk/gtksourceview"
-	"micro-emacs-pp/Editor"
-	ed "micro-emacs-pp/GTK/Editor"
-	. "micro-emacs-pp/KeyHandler"
-	kh "micro-emacs-pp/GTK/KeyHandler"
+	"micro-emacs-pp/editor"
+	ed "micro-emacs-pp/gtk/editor"
+	. "micro-emacs-pp/keyhandler"
+	kh "micro-emacs-pp/gtk/keyhandler"
 	"os"
 	"unsafe"
 )
@@ -19,7 +19,7 @@ var (
 	sourceview *gsv.SourceView
 	textview   *gtk.TextView
 	fileName   string
-	microemacs Editor.Editor
+	microemacs editor.Editor
 	keyh       KeyHandler = MakeRoot(kh.CtrlXHandler)
 )
 
@@ -38,7 +38,7 @@ func main() {
 	sourceview = gsv.NewSourceViewWithBuffer(sourcebuffer)
 
 	// ok := keyh.Insert([]KeyPressEvent{KeyCtrle},
-	// 	ActionHandler(func(e *Editor.Editor) KeyHandler {
+	// 	ActionHandler(func(e *editor.Editor) KeyHandler {
 	// 		e.CommandBuf.GrabFocus()
 	// 		fmt.Println("Easter Egg!")
 	// 		e.CommandBuf.Clear()
@@ -63,7 +63,7 @@ func main() {
 	var comiter gtk.TextIter
 	textbuffer.GetStartIter(&comiter)
 	comWrapper := ed.GtkTextBufferReadWriter{&textview.Container.Widget, comiter, textbuffer}
-	microemacs = Editor.Editor{"", &bufWrapper, &comWrapper}
+	microemacs = editor.Editor{"", &bufWrapper, &comWrapper}
 
 	vbox := gtk.NewVBox(false, 0)
 	vbox.PackStart(swin, true, true, 0)

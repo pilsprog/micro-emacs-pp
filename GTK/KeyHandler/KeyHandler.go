@@ -1,10 +1,10 @@
-package KeyHandler
+package keyhandler
 
 import (
 	"C"
 	"github.com/mattn/go-gtk/gdk"
-	"micro-emacs-pp/Editor"
-	. "micro-emacs-pp/KeyHandler"
+	"micro-emacs-pp/editor"
+	. "micro-emacs-pp/keyhandler"
 )
 
 var (
@@ -15,11 +15,11 @@ var (
 	// pressed.
 	CtrlFHandler KeyHandler = GuardHandler(
 		KeyCtrlf,
-		ActionHandler(func(e *Editor.Editor) KeyHandler {
+		ActionHandler(func(e *editor.Editor) KeyHandler {
 			e.CommandBuf.GrabFocus()
 			e.CommandBuf.Clear()
 			e.CommandBuf.Write([]byte("Find-file:"))
-			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
+			return InputHandler(func(s string, e *editor.Editor) KeyHandler {
 				e.OpenFile(s[10:])
 				e.CommandBuf.Clear()
 				e.CommandBuf.Write([]byte("File Opened!"))
@@ -32,10 +32,10 @@ var (
 	//ctrl+S was pressed.
 	CtrlSHandler KeyHandler = GuardHandler(
 		KeyCtrls,
-		ActionHandler(func(e *Editor.Editor) KeyHandler {
+		ActionHandler(func(e *editor.Editor) KeyHandler {
 			e.CommandBuf.GrabFocus()
 			e.CommandBuf.Clear()
-			return InputHandler(func(s string, e *Editor.Editor) KeyHandler {
+			return InputHandler(func(s string, e *editor.Editor) KeyHandler {
 				e.SaveFile(s)
 				e.CommandBuf.Clear()
 				e.CommandBuf.Write([]byte("File Saved!"))

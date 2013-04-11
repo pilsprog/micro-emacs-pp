@@ -1,12 +1,12 @@
 // Package Keyhandler provides combinators for
 // writing corded keyevents with calls to microemacspp/Editor. The combinators
 // builds a tree of possible key combinations.
-package KeyHandler
+package keyhandler
 
 import (
 	"C"
 	"fmt"
-	"micro-emacs-pp/Editor"
+	"micro-emacs-pp/editor"
 )
 
 var (
@@ -63,7 +63,7 @@ type KeyPressEvent interface {
 // Insert attempts to insert a new KeyHandler and returns true if it is
 // successful.
 type KeyHandler interface {
-	Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler)
+	Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler)
 	Accepts(e []KeyPressEvent) bool
 	Insert(e []KeyPressEvent, h KeyHandler) bool
 	//  Replace(e []KeyPressEvent,h KeyHandler) bool
@@ -79,7 +79,7 @@ type keyChoice struct {
 	choices []KeyHandler
 }
 
-func (k *keyChoice) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (k *keyChoice) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	for _, choice := range k.choices {
 		ok, handler := choice.Handle(e, editor)
 		if ok {
@@ -126,15 +126,15 @@ func makeGuards(e []KeyPressEvent, kh KeyHandler) KeyHandler {
 
 // Action Handler applies the Action regardless of what key was pressed and
 // then immediately gives control to the KeyHandler given by the Action.
-func ActionHandler(Action func(*Editor.Editor) KeyHandler) KeyHandler {
+func ActionHandler(Action func(*editor.Editor) KeyHandler) KeyHandler {
 	return &actionHandler{Action}
 }
 
 type actionHandler struct {
-	action func(*Editor.Editor) KeyHandler
+	action func(*editor.Editor) KeyHandler
 }
 
-func (k *actionHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (k *actionHandler) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	return true, k.action(editor)
 }
 
@@ -150,7 +150,7 @@ type rootHandler struct {
 	TopLevelChoices KeyHandler
 }
 
-func (this *rootHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (this *rootHandler) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	ok, handler := this.TopLevelChoices.Handle(e, editor)
 	if ok {
 		return ok, handler
@@ -178,7 +178,7 @@ type guardHandler struct {
 	next     KeyHandler
 }
 
-func (this *guardHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (this *guardHandler) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	if e.Equals(this.checkFor) {
 		fmt.Println("Guard Succeeded")
 		_, handler := this.next.Handle(e, editor)
@@ -219,7 +219,7 @@ type pauseHandler struct {
 	next KeyHandler
 }
 
-func (this *pauseHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (this *pauseHandler) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	return true, this.next
 }
 
@@ -233,15 +233,15 @@ func (this *pauseHandler) Insert(e []KeyPressEvent, kh KeyHandler) bool {
 
 // InputHandler waits for input string ended by the Return Key
 // and gives it to the Action.
-func InputHandler(action func(s string, e *Editor.Editor) KeyHandler) KeyHandler {
+func InputHandler(action func(s string, e *editor.Editor) KeyHandler) KeyHandler {
 	return &inputHandler{action}
 }
 
 type inputHandler struct {
-	action func(s string, e *Editor.Editor) KeyHandler
+	action func(s string, e *editor.Editor) KeyHandler
 }
 
-func (this *inputHandler) Handle(e KeyPressEvent, editor *Editor.Editor) (bool, KeyHandler) {
+func (this *inputHandler) Handle(e KeyPressEvent, editor *editor.Editor) (bool, KeyHandler) {
 	if !e.Equals(KeyReturn) {
 		return true, this
 	}
