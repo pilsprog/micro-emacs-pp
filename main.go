@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"
@@ -36,19 +35,6 @@ func main() {
 	swin := gtk.NewScrolledWindow(nil, nil)
 	sourcebuffer := gsv.NewSourceBufferWithLanguage(gsv.SourceLanguageManagerGetDefault().GetLanguage("cpp"))
 	sourceview = gsv.NewSourceViewWithBuffer(sourcebuffer)
-
-	// ok := keyh.Insert([]KeyPressEvent{KeyCtrle},
-	// 	ActionHandler(func(e *editor.Editor) KeyHandler {
-	// 		e.CommandBuf.GrabFocus()
-	// 		fmt.Println("Easter Egg!")
-	// 		e.CommandBuf.Clear()
-	// 		e.CommandBuf.Write([]byte("Easter Egg!!"))
-	// 		return keyh
-	// 	}))
-
-	// if !ok {
- 	fmt.Println("Insert failed!")
-	// }
 
 	var start gtk.TextIter
 	sourcebuffer.GetStartIter(&start)
