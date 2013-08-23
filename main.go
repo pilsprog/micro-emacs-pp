@@ -6,9 +6,9 @@ import (
 	"github.com/mattn/go-gtk/gtk"
 	gsv "github.com/mattn/go-gtk/gtksourceview"
 	"micro-emacs-pp/editor"
-	ed "micro-emacs-pp/gtk/editor"
-	. "micro-emacs-pp/keyhandler"
-	kh "micro-emacs-pp/gtk/keyhandler"
+	ed "github.com/pilsprog/micro-emacs-pp/gtk/editor"
+	. "github.com/pilsprog/micro-emacs-pp/keyhandler"
+	kh "github.com/pilsprog/micro-emacs-pp/gtk/keyhandler"
 	"os"
 	"unsafe"
 )
